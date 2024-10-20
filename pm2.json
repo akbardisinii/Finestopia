@@ -1,0 +1,21 @@
+{
+  "apps": [{
+    "name": "laravel-app",
+    "script": "artisan",
+    "args": ["serve", "--host=172.20.21.29", "--port=8000"],
+    "instances": 1,
+    "exec_mode": "fork",
+    "wait_ready": true,
+    "autorestart": true,
+    "max_restarts": 10,
+    "interpreter": "php",
+    "watch": false,
+    "error_file": "storage/logs/pm2_err.log",
+    "out_file": "storage/logs/pm2_out.log",
+    "log_file": "storage/logs/pm2_combined.log",
+    "time": true,
+    "env": {
+      "APP_ENV": "production"
+    }
+  }]
+}

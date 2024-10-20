@@ -1,0 +1,22 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-c42ce534.js",
+    "isEntry": true,
+    "src": "resources/css/app.css"
+  },
+  "resources/css/prezet.css": {
+    "file": "assets/prezet-c9064072.css",
+    "isEntry": true,
+    "src": "resources/css/prezet.css"
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-4ed993c7.js",
+    "isEntry": true,
+    "src": "resources/js/app.js"
+  },
+  "resources/js/prezet.js": {
+    "file": "assets/prezet-4ed993c7.js",
+    "isEntry": true,
+    "src": "resources/js/prezet.js"
+  }
+}
