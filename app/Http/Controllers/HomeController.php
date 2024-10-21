@@ -45,7 +45,7 @@ class HomeController extends Controller
         return view('home', compact('totalIncome', 'totalExpense', 'balance', 'allocation', 'lastExpense'));
     }
 
-    private function calculateAllocation($amount)
+    public function calculateAllocation($amount)
     {
         if ($amount == 0) {
             return [

@@ -22,6 +22,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Models\Debt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
+use App\Models\Testimonial;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,8 +36,9 @@ use Illuminate\Http\Request;
 */
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    $testimonials = \App\Models\Testimonial::latest()->take(6)->get();
+    return view('welcome', compact('testimonials'));
+})->name('welcome');
 
 Route::get('/book', function(){
     return view('book');
@@ -45,6 +47,9 @@ Route::get('/book', function(){
 Route::get('/testimonials', [TestimonialController::class, 'index'])->name('testimonials.index');
 Route::get('/testimonials/create', [TestimonialController::class, 'create'])->name('testimonials.create');
 Route::post('/testimonials', [TestimonialController::class, 'store'])->name('testimonials.store');
+Route::get('/testimonials', [TestimonialController::class, 'index'])->name('testimonials.index');
+Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'destroy'])->name('testimonials.destroy');
+
 
 Route::get('/proxy-ai', function (Request $request) {
     $prompt = strtolower($request->query('prompt'));
@@ -72,7 +77,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('/api')->group(function () {
         Route::get('/home', [HomeController::class, 'index'])->name('home');
         Route::get('/kalkulator', [AllocationCalculatorController::class, 'index'])->name('allocation.calculator');
-        Route::get('balances/index', [BalanceController::class, 'index']);
+        Route::get('/balances/index', [BalanceController::class, 'index']);
+        Route::get('/allocation/pdf', [AllocationController::class, 'downloadPdf'])->name('allocation.pdf');
         Route::get('/download-expense-report', [BalanceController::class, 'downloadExpenseReport'])->name('download.expense.report');
         Route::get('/income/monthly-report/{yearMonth}', [IncomeController::class, 'downloadMonthlyReport']);
         Route::get('/expense/total', [ExpenseController::class, 'getTotal']);
