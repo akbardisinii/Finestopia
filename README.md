@@ -49,10 +49,6 @@ Finestopia menyajikan laporan keuangan Anda dalam bentuk grafik interaktif yang 
    ```
    $ php artisan migrate
    ```
-7. Jalankan seeder:
-   ```
-   $ php artisan db:seed
-   ```
 8. Jalankan server development:
    ```
    $ php artisan serve
@@ -66,7 +62,3 @@ Finestopia menyajikan laporan keuangan Anda dalam bentuk grafik interaktif yang 
 - Chart.js untuk visualisasi data
 - jQuery
 - Font Awesome untuk ikon
-
-## User Login
-- Email: finester@demo.com
-- Password: finester123
