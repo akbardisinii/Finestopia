@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+use Illuminate\Auth\Events\Registered;
 
 class RegisterController extends Controller
 {
@@ -38,5 +40,19 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
             'job' =>  $data['job'], // Simpan data pekerjaan
         ]);
+    }
+
+    public function register(Request $request)
+    {
+        $this->validator($request->all())->validate();
+
+        event(new Registered($user = $this->create($request->all())));
+
+        $this->guard()->login($user);
+
+        session()->flash('status', 'Berhasil');
+
+        return $this->registered($request, $user)
+                    ?: redirect($this->redirectPath());
     }
 }
