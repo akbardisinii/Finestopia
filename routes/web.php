@@ -53,15 +53,6 @@ Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'des
 
 Route::get('/proxy-ai', function (Request $request) {
     $prompt = strtolower($request->query('prompt'));
-    
-    $identityQuestions = ['halo', 'siapa kamu', 'siapa lo', 'siapa anda', 'kamu siapa', 'lo siapa', 'anda siapa'];
-    
-    foreach ($identityQuestions as $question) {
-        if (strpos($prompt, $question) !== false) {
-            return response()->json("Saya adalah Finestopia AI, asisten virtual yang dirancang untuk membantu Anda dengan pertanyaan seputar manajemen keuangan dan layanan Finestopia. Bagaimana saya bisa membantu Anda hari ini?");
-        }
-    }
-    
     $response = Http::get("https://api.riskimivan.my.id/api/ai?prompt=" . urlencode($prompt));
     return $response->body();
 });

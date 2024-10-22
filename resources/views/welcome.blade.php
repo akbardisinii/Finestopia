@@ -260,22 +260,77 @@
         chatHeader.appendChild(closeButton);    
 
         async function getAIResponse(message) {
-            console.log('Fetching AI response for:', message);
-            try {
-                const response = await fetch(`/proxy-ai?prompt=${encodeURIComponent(message)}`);
-                console.log('Response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+    console.log('Fetching AI response for:', message);
+    try {
+        const lowercaseMessage = message.toLowerCase();
+        
+        const identityQuestions = ['halo', 'siapa kamu', 'siapa lo', 'siapa anda', 'kamu siapa', 'lo siapa', 'anda siapa'];
+            
+            for (const question of identityQuestions) {
+                if (lowercaseMessage.includes(question)) {
+                    return "Saya adalah Finestopia AI, asisten virtual yang dirancang untuk membantu Anda dengan pertanyaan seputar manajemen keuangan dan layanan Finestopia. Bagaimana saya bisa membantu Anda hari ini?";
                 }
-                const data = await response.json();
-                console.log('Raw response data:', data);
-                return data;
-            } catch (error) {
-                console.error('Error in getAIResponse:', error);
-                throw error;
             }
+            
+        if (lowercaseMessage.includes('web') || lowercaseMessage.includes('platform') || lowercaseMessage.includes('aplikasi')) {
+            return `Finestopia adalah platform manajemen keuangan pribadi yang inovatif. Ini adalah aplikasi web dan mobile yang dirancang untuk membantu pengguna mengelola keuangan mereka dengan lebih efektif dan aman. Finestopia menyediakan alat untuk pelacakan pengeluaran, penetapan anggaran, dan perencanaan tujuan keuangan, semua dalam satu platform yang mudah digunakan.`;
+        }
+        
+        if (lowercaseMessage.includes('fitur') || lowercaseMessage.includes('fungsi')) {
+            return `Finestopia menawarkan beberapa fitur utama:
+1. Pelacakan pengeluaran real-time
+2. Penetapan dan manajemen anggaran
+3. Perencanaan tujuan keuangan jangka pendek dan panjang
+4. Analisis pola pengeluaran
+5. Rekomendasi penghematan yang dipersonalisasi
+6. Integrasi dengan rekening bank dan kartu kredit
+7. Edukasi finansial melalui tips dan artikel`;
+        }
+        
+        if (lowercaseMessage.includes('keunggulan') || lowercaseMessage.includes('kelebihan')) {
+            return `Keunggulan utama Finestopia meliputi:
+1. Manajemen Keuangan Simpel: Semua aspek keuangan dapat dikelola dalam satu platform yang user-friendly.
+2. Perencanaan Masa Depan: Membantu pengguna menyiapkan dana untuk berbagai tujuan seperti pendidikan, pensiun, atau liburan.
+3. Keamanan Tingkat Tinggi: Menggunakan teknologi enkripsi terkini untuk melindungi data keuangan pengguna.
+4. Integrasi Mudah: Dapat terhubung dengan berbagai rekening bank dan kartu kredit.
+5. Edukasi Finansial: Menyediakan tips dan artikel tentang literasi keuangan.`;
+        }
+        
+        if (lowercaseMessage.includes('untuk siapa') || lowercaseMessage.includes('pengguna')) {
+            return `Finestopia cocok untuk semua orang yang ingin meningkatkan kesehatan finansial mereka. Ini termasuk:
+1. Mahasiswa yang baru mulai mengelola keuangan mereka sendiri
+2. Profesional muda yang ingin mengoptimalkan pengeluaran dan tabungan mereka
+3. Keluarga yang ingin merencanakan masa depan finansial mereka
+4. Siapa pun yang ingin mendapatkan kontrol lebih baik atas keuangan mereka dan mencapai tujuan finansial mereka`;
+        }
+        
+        if (lowercaseMessage.includes('cara kerja') || lowercaseMessage.includes('menggunakan')) {
+            return `Cara kerja Finestopia cukup sederhana:
+1. Pengguna mendaftar dan menghubungkan akun bank mereka (opsional)
+2. Aplikasi mulai melacak pemasukan dan pengeluaran secara otomatis
+3. Pengguna dapat menetapkan anggaran untuk berbagai kategori pengeluaran
+4. Finestopia memberikan analisis dan rekomendasi berdasarkan pola pengeluaran
+5. Pengguna dapat menetapkan tujuan keuangan dan melacak kemajuan mereka
+6. Aplikasi memberikan notifikasi dan laporan reguler untuk membantu pengguna tetap pada jalur finansial mereka`;
         }
 
+        if (lowercaseMessage.includes('finestopia')) {
+            return `Finestopia adalah platform manajemen keuangan pribadi yang inovatif, dirancang untuk membantu pengguna mengelola keuangan mereka dengan lebih efektif dan aman. Platform ini menawarkan berbagai fitur seperti pelacakan pengeluaran, penetapan anggaran, dan perencanaan tujuan keuangan. Dengan fokus pada keamanan dan kemudahan penggunaan, Finestopia bertujuan untuk menjadi mitra terpercaya dalam perjalanan finansial pengguna, membantu mereka mencapai kebebasan finansial dan tujuan keuangan mereka.`;
+        }
+
+        const response = await fetch(`/proxy-ai?prompt=${encodeURIComponent(message)}`);
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Raw response data:', data);
+        return data;
+    } catch (error) {
+        console.error('Error in getAIResponse:', error);
+        throw error;
+    }
+}
         function addMessage(sender, message) {
             console.log('Adding message:', { sender, message });
             const messageElement = document.createElement('div');
