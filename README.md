@@ -1,8 +1,8 @@
 # Finestopia - Sistem Manajemen Keuangan
 
-![Finestopia](https://raw.githubusercontent.com/akbardisinii/Finestopia/d5b4193de5fdf9a8af3ba976829e560df9756486/public/landingpage.png?token=GHSAT0AAAAAACYUKZVLWW7P62HTSPHOXROWZYXFZVA)
+![Finestopia](/public/landingpage.png)
 
-![FinestopiaHome](https://raw.githubusercontent.com/akbardisinii/Finestopia/refs/heads/main/public/homepage.png?token=GHSAT0AAAAAACYUKZVLONDR2XT3PFBIPTB2ZYXF5RQ)
+![FinestopiaHome](/public/homepage.png)
 
 ## Tentang Finestopia
 
