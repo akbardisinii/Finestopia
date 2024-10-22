@@ -2,6 +2,8 @@
 
 ![Finestopia](https://raw.githubusercontent.com/akbardisinii/Finestopia/d5b4193de5fdf9a8af3ba976829e560df9756486/public/landingpage.png?token=GHSAT0AAAAAACYUKZVLWW7P62HTSPHOXROWZYXFZVA)
 
+![FinestopiaHome](https://raw.githubusercontent.com/akbardisinii/Finestopia/refs/heads/main/public/homepage.png?token=GHSAT0AAAAAACYUKZVLONDR2XT3PFBIPTB2ZYXF5RQ)
+
 ## Tentang Finestopia
 
 Finestopia adalah sistem manajemen keuangan yang inovatif, dirancang khusus untuk membantu Anda mengelola dan mengoptimalkan keuangan Anda. Aplikasi ini mendorong Anda untuk mengembangkan kebiasaan finansial yang sehat dan berkelanjutan.
