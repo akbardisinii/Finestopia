@@ -57,22 +57,40 @@
             max-height: 100%;
         }
         #pdf-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.8);
+            display: none;
         }
-        #pdf-controls button {
-            margin: 0 10px;
+        @media (max-width: 1023px) {
+            #pdf-controls {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 10px;
+                background-color: rgba(255, 255, 255, 0.8);
+            }
+            #pdf-controls button {
+                margin: 0 10px;
+            }
+        }
+        .laptop-view {
+            display: none;
         }
         @media (min-width: 1024px) {
-            #flipbook {
-                width: auto;
-                height: 70vh;
-                aspect-ratio: 3/4;
-                max-width: none;
-                max-height: none;
+            .laptop-view {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 2rem;
+            }
+            #pdf-embed-container {
+                width: 80vw;
+                height: 80vh;
+                max-width: 1000px;
+                max-height: 1000px;
+            }
+            #pdf-embed {
+                width: 100%;
+                height: 100%;
+                border: none;
             }
         }
     </style>
@@ -101,21 +119,26 @@
         </div>
     </nav>
 
-    <main class="flex-grow">
-        <div id="flipbook-container">
+    <main class="flex-grow lg:hidden">
+        <div id="flipbook-container" class="lg:hidden">
             <div id="flipbook" class="custom-shadow">
                 <div id="pdf-canvas-container">
                     <canvas id="pdf-canvas"></canvas>
                 </div>
                 <div id="pdf-controls">
-                    <button id="prev-page" class="px-4 py-2 bg-orange-600 text-white rounded-md lg:hidden">Previous Page</button>
-                    <span class="text-center px-2 lg:hidden">Page: <span id="page-num"></span> / <span id="page-count"></span></span>
-                    <button id="next-page" class="px-4 py-2 bg-orange-600 text-white rounded-md lg:hidden">Next Page</button>
-                    <button id="view-pdf" class="px-4 py-2 bg-orange-600 text-white rounded-md hidden lg:block">View PDF</button>
+                    <button id="prev-page" class="px-4 py-2 bg-orange-600 text-white rounded-md">Previous Page</button>
+                    <span class="text-center px-2">Page: <span id="page-num"></span> / <span id="page-count"></span></span>
+                    <button id="next-page" class="px-4 py-2 bg-orange-600 text-white rounded-md">Next Page</button>
                 </div>
             </div>
         </div>
     </main>
+
+    <div class="laptop-view">
+        <div id="pdf-embed-container" class="custom-shadow">
+            <embed id="pdf-embed" src="/Finestopia%20Manual%20Book.pdf" type="application/pdf" />
+        </div>
+    </div>
 
     <footer class="bg-gray-100">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
@@ -139,53 +162,54 @@
         var canvas = document.getElementById('pdf-canvas'),
             ctx = canvas.getContext('2d');
 
-            function getScale() {
-    var container = document.getElementById('pdf-canvas-container');
-    var containerWidth = container.clientWidth;
-    var containerHeight = container.clientHeight;
-    
-    var pdfWidth = 595;
-    var pdfHeight = 842;
+        function getScale() {
+            var container = document.getElementById('pdf-canvas-container');
+            var containerWidth = container.clientWidth;
+            var containerHeight = container.clientHeight;
+            
+            var pdfWidth = 595;
+            var pdfHeight = 842;
 
-    var widthScale = containerWidth / pdfWidth;
-    var heightScale = containerHeight / pdfHeight;
+            var widthScale = containerWidth / pdfWidth;
+            var heightScale = containerHeight / pdfHeight;
 
-    var scale = Math.min(widthScale, heightScale);
-    var pixelRatio = window.devicePixelRatio || 1;
-    scale *= pixelRatio;
+            var scale = Math.min(widthScale, heightScale);
 
-    return scale;
-}
+            var pixelRatio = window.devicePixelRatio || 1;
+            scale *= pixelRatio;
 
-function renderPage(num) {
-    pageIsRendering = true;
-    pdfDoc.getPage(num).then(function(page) {
-        var scale = getScale();
-        var viewport = page.getViewport({ scale: scale });
+            return scale;
+        }
 
-        var pixelRatio = window.devicePixelRatio || 1;
-        canvas.width = viewport.width * pixelRatio;
-        canvas.height = viewport.height * pixelRatio;
-        canvas.style.width = viewport.width + "px";
-        canvas.style.height = viewport.height + "px";
+        function renderPage(num) {
+            pageIsRendering = true;
+            pdfDoc.getPage(num).then(function(page) {
+                var scale = getScale();
+                var viewport = page.getViewport({ scale: scale });
 
-        var renderContext = {
-            canvasContext: ctx,
-            viewport: viewport,
-            transform: pixelRatio !== 1 ? [pixelRatio, 0, 0, pixelRatio, 0, 0] : null
-        };
+                var pixelRatio = window.devicePixelRatio || 1;
+                canvas.width = viewport.width * pixelRatio;
+                canvas.height = viewport.height * pixelRatio;
+                canvas.style.width = viewport.width + "px";
+                canvas.style.height = viewport.height + "px";
 
-        var renderTask = page.render(renderContext);
+                var renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport,
+                    transform: pixelRatio !== 1 ? [pixelRatio, 0, 0, pixelRatio, 0, 0] : null
+                };
 
-        renderTask.promise.then(function() {
-            pageIsRendering = false;
-            if (pageNumIsPending !== null) {
-                renderPage(pageNumIsPending);
-                pageNumIsPending = null;
-            }
-        });
+                var renderTask = page.render(renderContext);
 
-        document.getElementById('page-num').textContent = num;
+                renderTask.promise.then(function() {
+                    pageIsRendering = false;
+                    if (pageNumIsPending !== null) {
+                        renderPage(pageNumIsPending);
+                        pageNumIsPending = null;
+                    }
+                });
+
+                document.getElementById('page-num').textContent = num;
             });
         }
 
@@ -209,25 +233,24 @@ function renderPage(num) {
             queueRenderPage(pageNum);
         }
 
-        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
-            pdfDoc = pdfDoc_;
-            document.getElementById('page-count').textContent = pdfDoc.numPages;
-            renderPage(pageNum);
-        });
-
-        document.getElementById('prev-page').addEventListener('click', onPrevPage);
-        document.getElementById('next-page').addEventListener('click', onNextPage);
-        document.getElementById('view-pdf').addEventListener('click', function() {
-            window.open(url, '_blank');
-        });
-
-        function resizeCanvas() {
-            if (pdfDoc) {
+        if (window.innerWidth < 1024) {
+            pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+                pdfDoc = pdfDoc_;
+                document.getElementById('page-count').textContent = pdfDoc.numPages;
                 renderPage(pageNum);
-            }
-        }
+            });
 
-        window.addEventListener('resize', resizeCanvas);
+            document.getElementById('prev-page').addEventListener('click', onPrevPage);
+            document.getElementById('next-page').addEventListener('click', onNextPage);
+
+            function resizeCanvas() {
+                if (pdfDoc) {
+                    renderPage(pageNum);
+                }
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+        }
     </script>
 </body>
 </html>
