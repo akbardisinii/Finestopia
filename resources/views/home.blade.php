@@ -382,7 +382,7 @@
                                 <th>Sekunder</th>
                                 <th>Investasi</th>
                                 <th>Cicilan</th>
-                                <th>Aksi</th>
+                                <th>Download</th>
                             </tr>
                         </thead>
                         <tbody id="allocationHistoryTable">
