@@ -177,7 +177,7 @@
             <div class="card-body d-flex flex-column justify-content-between">
                 <div>
                     <h4 class="card-title mb-1">
-                        <small>Rp {{ number_format($totalIncome, 0, ',', '.') }}</small>
+                        <h4>Rp {{ number_format($totalIncome, 0, ',', '.') }}</h4>
                     </h4>
                 </div>
                 <div class="mt-3 d-flex justify-content-between align-items-center">
@@ -191,8 +191,8 @@
         <div class="card dashboard card-border-bottom bg-white mb-3 h-100">
             <div class="card-body d-flex flex-column justify-content-between">
                 <div>
-                    <h4 class="card-title mb-1" id="total-expenses">
-                        <small>Rp {{ number_format($totalExpense, 0, ',', '.') }}</small>
+                    <h4 class="card-title mb-1">
+                        <h4>Rp {{ number_format($totalExpense, 0, ',', '.') }}</h4>
                     </h4>
                 </div>
                 <div class="mt-3 d-flex justify-content-between align-items-center">
@@ -313,6 +313,9 @@
         <button id="downloadAllocationPdf" class="btn btn-sm btn-primary">
             <i class="fas fa-download mr-1"></i> Unduh Alokasi PDF
         </button>
+        <button id="showAllocationHistory" class="btn btn-sm btn-info ml-2">
+        <i class="fas fa-history mr-1"></i> Lihat Riwayat Alokasi
+    </button>
     </div>
             </div>
         </div>
@@ -358,6 +361,38 @@
   </div>
 </div>
 
+<!-- Modal Riwayat Alokasi -->
+<div class="modal fade" id="allocationHistoryModal" tabindex="-1" aria-labelledby="allocationHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-white border-b">
+                <h5 class="modal-title" id="allocationHistoryModalLabel">Riwayat Alokasi Keuangan</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Total</th>
+                                <th>Primer</th>
+                                <th>Sekunder</th>
+                                <th>Investasi</th>
+                                <th>Cicilan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allocationHistoryTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Add Income Modal -->
 <div class="modal fade" id="addIncomeModal" tabindex="-1" role="dialog" aria-labelledby="addIncomeModalLabel" aria-hidden="true">
@@ -394,36 +429,6 @@
     </div>
 </div>
 
-<!-- Add Salary Modal -->
-<!-- <div class="modal fade" id="addSalaryModal" tabindex="-1" role="dialog" aria-labelledby="addSalaryModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addSalaryModalLabel">Add Salary</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="addSalaryForm">
-                    <div class="form-group">
-                        <label for="salaryAmount">Salary Amount</label>
-                        <input type="number" class="form-control" id="salaryAmount" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="salaryDate">Date</label>
-                        <input type="date" class="form-control" id="salaryDate" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveSalaryBtn">Save Salary</button>
-            </div>
-        </div>
-    </div>
-</div> -->
-
 <footer class="footer mt-2" style="position: relative; bottom: 0; left: 0; width: 100%; padding: 10px 0; background-color: #f8f9fa;">
     <div class="w-100" style="text-align: center;">
         <small>Didesain &amp; Dikembangkan oleh Tim Finest</small>
@@ -458,8 +463,93 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+    function downloadAllocationHistory(date, total, primary, secondary, investment, debt) {
+    // console.log('Downloading history allocation:', { date, total, primary, secondary, investment, debt });
+
+    Swal.fire({
+        title: 'Mengunduh PDF...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    $.ajax({
+        url: '/api/allocation/download-pdf',
+        method: 'POST',
+        data: {
+            date: date,
+            total: total,
+            primary_percentage: primary,
+            secondary_percentage: secondary,
+            investment_percentage: investment,
+            debt_percentage: debt,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        xhrFields: {
+            responseType: 'blob'
+        },
+        success: function(response, status, xhr) {
+            Swal.close();
+            const contentType = xhr.getResponseHeader('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const reader = new FileReader();
+                reader.onload = function() {
+                    try {
+                        const result = JSON.parse(this.result);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message || 'Gagal mengunduh PDF'
+                        });
+                    } catch (e) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Gagal mengunduh PDF'
+                        });
+                    }
+                };
+                reader.readAsText(response);
+                return;
+            }
+
+            // Download PDF
+            const blob = new Blob([response], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `alokasi_keuangan_${date}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        },
+        error: function(xhr, status, error) {
+            Swal.close();
+            // console.error('Error:', { status: xhr.status, statusText: xhr.statusText, error: error });
+            
+            // error message bang
+            try {
+                const errorText = xhr.responseText;
+                const errorData = JSON.parse(errorText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorData.message || 'Gagal mengunduh PDF'
+                });
+            } catch (e) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Gagal mengunduh PDF. Silakan coba lagi.'
+                });
+            }
+        }
+    });
+}
 $(document).ready(function() {
-    console.log('Document ready');
+    // console.log('Document ready');
 
     @if(session("status"))
         const swalWithBootstrapButtons = Swal.mixin({
@@ -504,9 +594,122 @@ $(document).ready(function() {
         });
     @endif()
 
+
+    function loadAllocationHistory() {
+    // console.log('Loading allocation history...');
+    const userId = {{ Auth::id() }}; // user id ye
+    const storageKey = `allocationHistory_${userId}`;
+    const allocationHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    const tableBody = $('#allocationHistoryTable');
+    tableBody.empty();
+
+    if (allocationHistory.length === 0) {
+        tableBody.append(`
+            <tr>
+                <td colspan="7" class="text-center">Belum ada riwayat alokasi</td>
+            </tr>
+        `);
+    } else {
+        allocationHistory.reverse().forEach((allocation) => {
+            // allocation current user
+            if (allocation.user_id === userId) {
+                try {
+                    const dateParts = allocation.date.split('-');
+                    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                    
+                    // Pastikan semua nilai adalah number
+                    const total = Number(allocation.total || allocation.balance);
+                    const primary = Number(allocation.primary_percentage);
+                    const secondary = Number(allocation.secondary_percentage);
+                    const investment = Number(allocation.investment_percentage);
+                    const debt = Number(allocation.debt_percentage);
+
+                    // nominal e
+                    const primaryAmount = Math.floor(total * primary / 100);
+                    const secondaryAmount = Math.floor(total * secondary / 100);
+                    const investmentAmount = Math.floor(total * investment / 100);
+                    const debtAmount = Math.floor(total * debt / 100);
+
+                    const row = `
+                        <tr>
+                            <td>${formattedDate}</td>
+                            <td>Rp ${new Intl.NumberFormat('id-ID').format(total)}</td>
+                            <td>Rp ${new Intl.NumberFormat('id-ID').format(primaryAmount)} (${primary}%)</td>
+                            <td>Rp ${new Intl.NumberFormat('id-ID').format(secondaryAmount)} (${secondary}%)</td>
+                            <td>Rp ${new Intl.NumberFormat('id-ID').format(investmentAmount)} (${investment}%)</td>
+                            <td>Rp ${new Intl.NumberFormat('id-ID').format(debtAmount)} (${debt}%)</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" 
+                                    onclick="downloadAllocationHistory('${allocation.date}', ${total}, ${primary}, ${secondary}, ${investment}, ${debt})">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.append(row);
+                } catch (error) {
+                    // console.error('Error processing allocation row:', error);
+                }
+            }
+        });
+    }
+    
+    $('#allocationHistoryModal').modal('show');
+}
+
+
+function saveNewAllocation(balance) {
+    const newAllocation = {
+        id: Date.now(),
+        user_id: {{ Auth::id() }}, // Add user ID
+        date: new Date().toISOString().split('T')[0],
+        total: Number(balance),
+        primary_percentage: Number($('#primary-progress').attr('aria-valuenow')),
+        secondary_percentage: Number($('#secondary-progress').attr('aria-valuenow')),
+        investment_percentage: Number($('#investment-progress').attr('aria-valuenow')),
+        debt_percentage: Number($('#debt-progress').attr('aria-valuenow'))
+    };
+    
+    // console.log('Saving new allocation:', newAllocation);
+    
+    const storageKey = `allocationHistory_${newAllocation.user_id}`; // User-specific storage key
+    const allocationHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    allocationHistory.push(newAllocation);
+    localStorage.setItem(storageKey, JSON.stringify(allocationHistory));
+}
+// Event listener riwayat alokasi
+$('#showAllocationHistory').on('click', function() {
+    loadAllocationHistory();
+});
+// Event listener download riwayat alokasi
+$(document).on('click', '.download-allocation', function() {
+    const allocationId = $(this).data('id');
+    if (allocationId) {
+        window.location.href = `/api/allocation/${allocationId}/pdf`;
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'ID alokasi tidak valid'
+        });
+    }
+});
+
+function formatNumber(number) {
+    try {
+        // number onli bang
+        const num = typeof number === 'string' ? parseFloat(number.replace(/[^\d.-]/g, '')) : number;
+        if (isNaN(num)) return '0';
+        return new Intl.NumberFormat('id-ID').format(num);
+    } catch (error) {
+        // console.error('Error formatting number:', error);
+        return '0';
+    }
+}
+
     $('#downloadAllocationPdf').on('click', function(e) {
     e.preventDefault();
-    console.log('Download allocation PDF button clicked');
+    // console.log('Download allocation PDF button clicked');
     
     var url = '{{ route("allocation.pdf") }}';
     url = url.replace(/^http:/, 'https:');
@@ -525,7 +728,7 @@ $(document).ready(function() {
             link.click();
         },
         error: function(xhr, status, error) {
-            console.error('Error downloading PDF:', error);
+            // console.error('Error downloading PDF:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -545,7 +748,7 @@ $(document).ready(function() {
     setInterval(updateCurrentDate, 60000);
 
     function showAddIncomeModal() {
-      console.log('showAddIncomeModal called');
+    //   console.log('showAddIncomeModal called');
       $('#addIncomeModal').modal('show');
     }
 
@@ -594,7 +797,7 @@ $(document).ready(function() {
         success: function(response) {
             $('#AddExpenseModal').modal('hide');
             
-            // Check if the balance is negative
+            // Check if the balance negative
             if (response.balance < 0) {
                 Swal.fire({
                     icon: 'warning',
@@ -605,6 +808,9 @@ $(document).ready(function() {
                     window.location.reload();
                 });
             } else {
+                const currentBalance = parseFloat($('#total-income-display').text().replace('Rp. ', '').replace(/\./g, ''));
+            
+            saveNewAllocation(currentBalance);
                 Swal.fire({
                     icon: 'success',
                     title: 'Pengeluaran Berhasil Ditambahkan!',
@@ -634,9 +840,9 @@ $(document).ready(function() {
 });
 
     $('#downloadReport').on('click', function() {
-    console.log('Download button clicked');
+    // console.log('Download button clicked');
     const selectedMonth = $('#summary-month').val();
-    console.log('Selected month:', selectedMonth);
+    // console.log('Selected month:', selectedMonth);
     window.location.href = `/api/income/monthly-report/${selectedMonth}`;
     
 });
@@ -644,14 +850,13 @@ $(document).ready(function() {
 
 
 function submitIncome() {
-    console.log('submitIncome function called');
+    // console.log('submitIncome function called');
     const title = $('#incomeTitle').val();
     const amount = parseFormattedNumber($('#incomeAmount').val());
     const date = $('#incomeDate').val() || null;
-    const category = $('#incomeCategory').val() || null;
 
     if (!title || isNaN(amount)) {
-        console.error('Validation error:', { title, amount });
+        // console.error('Validation error:', { title, amount });
         Swal.fire({
             icon: 'error',
             title: 'Validasi Error',
@@ -660,8 +865,6 @@ function submitIncome() {
         return;
     }
 
-    console.log('Submitting income:', { title, amount, date, category });
-
     $.ajax({
         url: '/api/income',
         method: 'POST',
@@ -669,14 +872,18 @@ function submitIncome() {
             _token: $('meta[name="csrf-token"]').attr('content'),
             title: title,
             amount: amount,
-            date: date,
-            category: category
+            date: date
         },
         success: function(response) {
-            console.log('Server response:', response);
+            // console.log('Server response:', response);
             $('#addIncomeModal').modal('hide');
             $('#addIncomeForm')[0].reset();
             
+            // Ambil balance terapdet wkwkwk
+            const currentBalance = parseFloat($('#total-income-display').text().replace('Rp. ', '').replace(/\./g, ''));
+            
+            saveNewAllocation(currentBalance);
+
             Swal.fire({
                 icon: 'success',
                 title: 'Pemasukan Berhasil Ditambahkan!',
@@ -687,16 +894,11 @@ function submitIncome() {
             });
         },
         error: function(xhr, status, error) {
-            console.error('AJAX error:', status, error);
-            console.error('Response Text:', xhr.responseText);
-            let errorMessage = 'Terjadi kesalahan saat menyimpan pemasukan.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
+            // console.error('AJAX error:', status, error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: errorMessage,
+                text: 'Terjadi kesalahan saat menyimpan pemasukan.',
             });
         }
     });
@@ -707,11 +909,11 @@ function submitIncome() {
         url: '/api/balance',
         method: 'GET',
         success: function(data) {
-          console.log('Received balance data:', data);
+          //console.log('Received balance data:', data);
           $('#total-income-display').text(data.formattedBalance);
         },
         error: function(xhr, status, error) {
-          console.error('Error fetching balance:', error);
+        //  console.error('Error fetching balance:', error);
         }
       });
     }
@@ -741,30 +943,30 @@ function submitIncome() {
     }
 
     function fetchMonthlySummary(yearMonth) {
-    console.log('Fetching monthly summary for:', yearMonth);
+    // console.log('Fetching monthly summary for:', yearMonth);
     $.ajax({
         url: `/api/income/monthly-summary/${yearMonth}`,
         method: 'GET',
         success: function(data) {
-            console.log('Received monthly summary data:', data);
+            // console.log('Received monthly summary data:', data);
             if (data && data.labels && data.incomes) {
                 updateMonthlySummaryChart(data);
             } else {
-                console.error('Invalid data structure received from API');
+                // console.error('Invalid data structure received from API');
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error fetching monthly income summary:', error);
-            console.error('Response:', xhr.responseText);
+            // console.error('Error fetching monthly income summary:', error);
+            // console.error('Response:', xhr.responseText);
         }
     });
 }
 
 function updateMonthlySummaryChart(data) {
-    console.log('Updating monthly summary chart with data:', data);
+    // console.log('Updating monthly summary chart with data:', data);
     const ctx = document.getElementById('monthly-summary-chart');
     if (!ctx) {
-        console.error('Canvas element "monthly-summary-chart" not found');
+        // console.error('Canvas element "monthly-summary-chart" not found');
         return;
     }
 
@@ -817,52 +1019,52 @@ function updateMonthlySummaryChart(data) {
 
     $('#summary-month').on('change', function() {
     const selectedMonth = $(this).val();
-    console.log('Selected month:', selectedMonth);
+    // console.log('Selected month:', selectedMonth);
     fetchMonthlySummary(selectedMonth);
 });
 
     function fetchAndUpdateTotalIncome() {
-        console.log('Fetching and updating total income...');
+        // console.log('Fetching and updating total income...');
         $.ajax({
             url: '/api/income/total',
             method: 'GET',
             success: function(data) {
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching total income:', error);
+                // console.error('Error fetching total income:', error);
             }
         });
     }
 
     function fetchAndUpdateFinancialAllocation() {
-        console.log('Fetching and updating financial allocation...');
+        // console.log('Fetching and updating financial allocation...');
         $.ajax({
             url: '/api/allocation',
             method: 'GET',
             success: function(data) {
-                console.log('Received allocation data:', data);
+                // console.log('Received allocation data:', data);
                 if (data && data.allocations) {
                     updateFinancialAllocationDisplay(data.allocations);
                 } else {
-                    console.error('Invalid allocation data received');
+                    // console.error('Invalid allocation data received');
                     displayNoAllocationData();
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching allocation data:', error);
+                // console.error('Error fetching allocation data:', error);
                 displayNoAllocationData();
             }
         });
     }
 
     function updateFinancialAllocationDisplay(allocation) {
-        console.log('Updating financial allocation display:', JSON.stringify(allocation));
+        // console.log('Updating financial allocation display:', JSON.stringify(allocation));
         
         const total = parseFloat(allocation.total) || 0;
         $('#total-balance-display').text('Rp. ' + formatMoney(total));
 
         ['primary', 'secondary', 'investment', 'debt'].forEach(category => {
-            console.log(`Updating ${category}:`, allocation[category]);
+            // console.log(`Updating ${category}:`, allocation[category]);
         });
         
     }
@@ -879,7 +1081,7 @@ function updateMonthlySummaryChart(data) {
    
 
     function displayNoAllocationData() {
-        console.warn('Displaying no allocation data');
+        // console.warn('Displaying no allocation data');
         ['primary', 'secondary', 'investment', 'debt'].forEach(category => {
             $(`#${category}-amount`).text('Rp. 0 (0%)');
             $(`#${category}-progress`).css('width', '0%').attr('aria-valuenow', 0);
@@ -895,22 +1097,23 @@ function updateMonthlySummaryChart(data) {
     }
 
     function fetchAndUpdateTotalExpense() {
-        console.log('Fetching and updating total expense...');
+        // console.log('Fetching and updating total expense...');
         $.ajax({
             url: '/api/expense/total',
             method: 'GET',
             success: function(data) {
-                console.log('Received total expense:', data);
+                // console.log('Received total expense:', data);
                 if (data.totalExpense !== undefined) {
                     updateTotalExpense(data.totalExpense);
                 } else {
-                    console.error('Invalid total expense data received');
+                    // console.error('Invalid total expense data received');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching total expense:', error);
+                // console.error('Error fetching total expense:', error);
             }
         });
+        
     }
 
     function startAutoRefresh() {
@@ -930,9 +1133,9 @@ function updateMonthlySummaryChart(data) {
 function updateTotalExpense(totalExpense) {
     if (totalExpense !== undefined && totalExpense !== null && !isNaN(totalExpense)) {
         $('#total-expenses').text('Rp ' + accounting.formatMoney(totalExpense, "", 0, ".", ","));
-        console.log('Total expense updated to:', totalExpense);
+        // console.log('Total expense updated to:', totalExpense);
     } else {
-        console.error('Invalid total expense value:', totalExpense);
+        // console.error('Invalid total expense value:', totalExpense);
     }
 }
 

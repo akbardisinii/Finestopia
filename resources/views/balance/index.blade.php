@@ -112,7 +112,7 @@
         <div class="col-xl-6 mb-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Ringkasan Keuangan</h5>
+                    <h5 class="card-title">Ringkasan Pengeluaran</h5>
                     <canvas id="bar-index"></canvas>
                 </div>
             </div>
@@ -267,17 +267,16 @@
 @section('script')
 @auth
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
-<script src="{{ asset('js/accounting.min.js') }}"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ asset('js/balance.index.min.js') }}"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/accounting.js/0.4.1/accounting.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('js/balance.index.min.js') }}"></script>
 
 <script>
 $(document).ready(function() {
-    console.log('Document ready');
+    // console.log('Document ready');
 
     function formatNumber(n) {
         return n.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -296,14 +295,11 @@ $(document).ready(function() {
     });
 
     function submitIncome() {
-        console.log('submitIncome function called');
         const title = $('#incomeTitle').val();
         const amount = parseFormattedNumber($('#incomeAmount').val());
         const date = $('#incomeDate').val() || null;
-        const category = $('#incomeCategory').val() || null;
 
         if (!title || isNaN(amount)) {
-            console.error('Validation error:', { title, amount });
             Swal.fire({
                 icon: 'error',
                 title: 'Validasi Error',
@@ -312,8 +308,6 @@ $(document).ready(function() {
             return;
         }
 
-        console.log('Submitting income:', { title, amount, date, category });
-
         $.ajax({
             url: '/api/income',
             method: 'POST',
@@ -321,14 +315,16 @@ $(document).ready(function() {
                 _token: $('meta[name="csrf-token"]').attr('content'),
                 title: title,
                 amount: amount,
-                date: date,
-                category: category
+                date: date
             },
             success: function(response) {
-                console.log('Server response:', response);
                 $('#addIncomeModal').modal('hide');
                 $('#addIncomeForm')[0].reset();
                 
+                // Get current balance and save allocation
+                const currentBalance = parseFloat($('#total-balance').text().replace('Rp ', '').replace(/\./g, ''));
+                saveNewAllocation(currentBalance);
+
                 Swal.fire({
                     icon: 'success',
                     title: 'Pemasukan Berhasil Ditambahkan!',
@@ -339,108 +335,111 @@ $(document).ready(function() {
                 });
             },
             error: function(xhr, status, error) {
-                console.error('AJAX error:', status, error);
-                console.error('Response Text:', xhr.responseText);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An error occurred while saving the income: ' + error,
+                    text: 'Terjadi kesalahan saat menyimpan pemasukan.',
                 });
             }
         });
     }
 
+    function saveNewAllocation(balance) {
+    // Fetch current allocation percentages from API first
+    $.ajax({
+        url: '/api/allocation',
+        method: 'GET',
+        success: function(response) {
+            if (response && response.allocations) {
+                const newAllocation = {
+                    id: Date.now(),
+                    user_id: {{ Auth::id() }},
+                    date: new Date().toISOString().split('T')[0],
+                    total: Number(balance),
+                    primary_percentage: Number(response.allocations.primary.percentage || 0),
+                    secondary_percentage: Number(response.allocations.secondary.percentage || 0),
+                    investment_percentage: Number(response.allocations.investment.percentage || 0),
+                    debt_percentage: Number(response.allocations.debt.percentage || 0)
+                };
+                
+                const storageKey = `allocationHistory_${newAllocation.user_id}`;
+                const allocationHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                allocationHistory.push(newAllocation);
+                localStorage.setItem(storageKey, JSON.stringify(allocationHistory));
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching allocation data:', error);
+        }
+    });
+}
+
     // Add Income
     $('#addIncomeBtn').click(function() {
-        console.log('Add Income button clicked');
+        // console.log('Add Income button clicked');
         $('#addIncomeModal').modal('show');
     });
 
     $('#saveIncomeBtn').click(function(e) {
-        console.log('Save Income button clicked');
+        // console.log('Save Income button clicked');
         e.preventDefault();
         submitIncome();
     });
 
     // Add Expense
     $('#addExpenseBtn').click(function() {
-        console.log('Add Expense button clicked');
+        // console.log('Add Expense button clicked');
         $('#AddExpenseModal').modal('show');
     });
 
     $('#saveExpenseBtn').click(function() {
-        var expenseData = {
-            title: $('#expenseTitle').val(),
-            amount: parseFormattedNumber($('#expenseAmount').val()),
-            description: $('#expenseDescription').val(),
-            date: $('#expenseDate').val()
-        };
+    var expenseData = {
+        title: $('#expenseTitle').val(),
+        amount: parseFormattedNumber($('#expenseAmount').val()),
+        description: $('#expenseDescription').val(),
+        date: $('#expenseDate').val()
+    };
 
-        $.ajax({
-            url: '/api/expenses',
-            method: 'POST',
-            data: expenseData,
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(response) {
-                $('#AddExpenseModal').modal('hide');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Pengeluaran Berhasil Ditambahkan!',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    window.location.reload();
-                });
-            },
-            error: function(xhr) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to add expense',
-                });
-            }
-        });
-    });
-
-    // Chart
-    var ctx = document.getElementById('bar-index').getContext('2d');
-    var myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Income', 'Expense', 'Balance'],
-            datasets: [{
-                label: 'Ringkasan Keuangan',
-                data: [{{ $totalIncome }}, {{ $totalExpense }}, {{ $totalBalance }}],
-                backgroundColor: [
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(255, 99, 132, 0.2)',
-                    'rgba(54, 162, 235, 0.2)'
-                ],
-                borderColor: [
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)'
-                ],
-                borderWidth: 1
-            }]
+    $.ajax({
+        url: '/api/expenses',
+        method: 'POST',
+        data: expenseData,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
+        success: function(response) {
+            $('#AddExpenseModal').modal('hide');
+            
+            // Get current balance after expense
+            const currentBalance = parseFloat($('#total-balance').text().replace('Rp ', '').replace(/\./g, ''));
+            saveNewAllocation(currentBalance);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Pengeluaran Berhasil Ditambahkan!',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                window.location.reload();
+            });
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to add expense',
+            });
         }
     });
+});
+
 
     function updateTotalExpense(totalExpense) {
         if (totalExpense !== undefined && totalExpense !== null && !isNaN(totalExpense)) {
             $('#total-expenses').text('Rp ' + accounting.formatMoney(totalExpense, "", 0, ".", ","));
-            console.log('Total expense updated to:', totalExpense);
+            // console.log('Total expense updated to:', totalExpense);
         } else {
-            console.error('Invalid total expense value:', totalExpense);
+            // console.error('Invalid total expense value:', totalExpense);
         }
     }
 
@@ -452,11 +451,11 @@ $(document).ready(function() {
                 if (data.totalIncome !== undefined) {
                     $('#total-income').text('Rp ' + accounting.formatMoney(data.totalIncome, "", 0, ".", ","));
                 } else {
-                    console.error('Invalid total income data received');
+                    // console.error('Invalid total income data received');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching total income:', error);
+                // console.error('Error fetching total income:', error);
             }
         });
     }
@@ -469,11 +468,11 @@ $(document).ready(function() {
                 if (data.totalExpense !== undefined) {
                     updateTotalExpense(data.totalExpense);
                 } else {
-                    console.error('Invalid total expense data received');
+                    // console.error('Invalid total expense data received');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching total expense:', error);
+                // console.error('Error fetching total expense:', error);
             }
         });
     }
@@ -486,11 +485,11 @@ $(document).ready(function() {
                 if (data.balance !== undefined) {
                     $('#total-balance').text('Rp ' + accounting.formatMoney(data.balance, "", 0, ".", ","));
                 } else {
-                    console.error('Invalid balance data received');
+                    // console.error('Invalid balance data received');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching balance:', error);
+                // console.error('Error fetching balance:', error);
             }
         });
     }
@@ -502,7 +501,7 @@ $(document).ready(function() {
     }
 
     function startAutoRefresh() {
-        setInterval(refreshAllData, 30000); // Refresh every 30 seconds
+        setInterval(refreshAllData, 30000);
     }
 
     refreshAllData();
